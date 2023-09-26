@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
-import { enable, isEnabled, disable } from "tauri-plugin-autostart-api";
+import { enable } from "tauri-plugin-autostart-api";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");

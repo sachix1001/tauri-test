@@ -3,6 +3,12 @@
 use winreg::RegKey;
 use winreg::enums::*;
 
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+  args: Vec<String>,
+  cwd: String,
+}
+
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn greet(name: &str) -> Result<String, String> {
@@ -10,16 +16,12 @@ fn greet(name: &str) -> Result<String, String> {
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
 
-    let path = Path::new("Software").join("WOW6432Node").join("Halo Wing");
-    let (key, _) = hklm.create_subkey_with_flags(
-        &path,
-        KEY_WRITE,
-    )
-    .map_err(|e| format!("Failed to create subkey: {:?}", e))?;
-
+    let path = Path::new("Software").join("WOW6432Node").join("Halo Wing").join("test");
+    let (key, _) = hklm.create_subkey(&path).map_err(|e| format!("Failed to create subkey: {:?}", e))?;
+    
     key.set_value("Test", &name).map_err(|e| format!("Failed to set value: {:?}", e))?;
 
-    let reg_name: String = key.get_value("Test").map_err(|e| format!("Failed to get value: {:?}", e))?;
+    let reg_name: String = key.get_value("test").map_err(|e| format!("Failed to get value: {:?}", e))?;
 
 
 
@@ -77,6 +79,11 @@ fn main() {
         Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet])
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            println!("{}, {argv:?}, {cwd}", app.package_info().name);
+
+            app.emit_all("single-instance", Payload { args: argv, cwd }).unwrap();
+        }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"]) /* arbitrary number of args to pass to your app */))
         .run(tauri::generate_context!())
